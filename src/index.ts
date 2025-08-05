@@ -821,6 +821,13 @@ app.get("/", (c) => {
             margin-bottom: 16px;
         }
         
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #22BFFD, transparent);
+            margin: 32px 0;
+            border-radius: 1px;
+        }
+        
         /* Channel Selection */
         .channel-selection {
             background: white;
@@ -1718,6 +1725,7 @@ app.get("/", (c) => {
             
             // 2. INDIVIDUAL EPISODE SUMMARIES - Display below overview
             if (data.episodeSummaries && data.episodeSummaries.length > 0) {
+                html += '<div class="section-divider"></div>';
                 html += '<h4>📝 Individual Episode Summaries</h4>';
                 html += '<p><em>Detailed breakdown of each episode from all channels:</em></p>';
                 
