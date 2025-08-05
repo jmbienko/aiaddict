@@ -96,18 +96,23 @@ async function callEmailMcpServer(method: string, args: any): Promise<any> {
 }
 async function getChannelVideos(channelId: string, maxResults: number = 5, env: any) {
   const YOUTUBE_API_KEY = env.YOUTUBE_API_KEY;
+  console.log('🔑 Using API key:', YOUTUBE_API_KEY ? YOUTUBE_API_KEY.substring(0, 10) + '...' : 'NOT SET');
   if (!YOUTUBE_API_KEY) {
     throw new Error('YouTube API key not configured');
   }
 
   // Get channel's upload playlist ID
+  console.log('🔍 Fetching channel info for:', channelId);
   const channelResponse = await fetch(
     `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YOUTUBE_API_KEY}`
   );
   
+  console.log('🔍 Channel API Response Status:', channelResponse.status, channelResponse.statusText);
+  
   if (!channelResponse.ok) {
     const errorText = await channelResponse.text();
-            console.error('YouTube API Error Response:', errorText);
+    console.error('✘ [ERROR] YouTube API Error Response:', errorText);
+    console.error('✘ [ERROR] Channel URL that failed:', `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YOUTUBE_API_KEY.substring(0, 10)}...`);
     throw new Error(`YouTube API error: ${channelResponse.status} - ${errorText}`);
   }
   
@@ -117,15 +122,22 @@ async function getChannelVideos(channelId: string, maxResults: number = 5, env: 
   if (!uploadsPlaylistId) {
     throw new Error('Could not find uploads playlist for channel');
   }
+  
+  // Add a small delay to avoid rate limiting
+  await new Promise(resolve => setTimeout(resolve, 100));
 
   // Get videos from uploads playlist
+  console.log('🔍 Fetching videos for playlist:', uploadsPlaylistId);
   const videosResponse = await fetch(
     `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${YOUTUBE_API_KEY}`
   );
   
+  console.log('🔍 Videos API Response Status:', videosResponse.status, videosResponse.statusText);
+  
   if (!videosResponse.ok) {
     const errorText = await videosResponse.text();
-            console.error('YouTube Videos API Error Response:', errorText);
+    console.error('✘ [ERROR] YouTube Videos API Error Response:', errorText);
+    console.error('✘ [ERROR] Videos URL that failed:', `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${YOUTUBE_API_KEY.substring(0, 10)}...`);
     throw new Error(`YouTube API error: ${videosResponse.status} - ${errorText}`);
   }
   
@@ -143,6 +155,7 @@ async function getChannelVideos(channelId: string, maxResults: number = 5, env: 
 
 async function getVideoInfo(videoId: string, env: any) {
   const YOUTUBE_API_KEY = env.YOUTUBE_API_KEY;
+  console.log('🔑 Using API key for video info:', YOUTUBE_API_KEY ? YOUTUBE_API_KEY.substring(0, 10) + '...' : 'NOT SET');
   if (!YOUTUBE_API_KEY) {
     throw new Error('YouTube API key not configured');
   }
@@ -795,6 +808,14 @@ app.get("/", (c) => {
         .error {
             background: #fee2e2;
             color: #991b1b;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 16px;
@@ -1716,8 +1737,20 @@ app.get("/", (c) => {
                         '</div>';
                 });
             } else {
-                html += '<div class="status">No episode summaries found in the response.</div>';
+                html += '<div class="error">❌ No episode summaries found in the response.</div>';
+                html += '<div class="status">This might be due to:</div>';
+                html += '<ul class="insights-list">';
+                html += '<li>YouTube API key issues (check if it is expired or invalid)</li>';
+                html += '<li>No recent videos found from the selected channels</li>';
+                html += '<li>Network connectivity issues</li>';
+                html += '</ul>';
+                html += '<p><strong>Response data:</strong></p>';
+                html += '<pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto;">' + JSON.stringify(data, null, 2) + '</pre>';
                 console.log('No episodeSummaries found in data:', data);
+            }
+            
+            if (data.warning) {
+                html += '<div class="warning">⚠️ ' + data.warning + '</div>';
             }
             
             if (data.emailSent) {
@@ -2084,6 +2117,7 @@ app.post("/api/generate-summary", async (c) => {
         });
 
         // Process each video
+        console.log(`📹 Processing ${videos.length} videos for channel ${channel.name}`);
         for (const video of videos) {
           // Get video info (description as transcript alternative)
           const videoInfo = await getVideoInfo(video.id, c.env);
@@ -2092,11 +2126,13 @@ app.post("/api/generate-summary", async (c) => {
           const contentForSummary = videoInfo.description || video.description || "No content available for summarization";
 
           // Summarize video using AI
+          console.log(`🤖 Starting AI summary for: ${video.title}`);
           const summary = await summarizeEpisode(
             c.env.AI,
             contentForSummary,
             video.title
           );
+          console.log(`✅ Generated summary for ${video.title} - Key insights: ${summary.keyInsights.length}`);
 
           // Store video and summary (prevent duplicates)
           await db.insert(schema.episodes).values({
@@ -2163,12 +2199,32 @@ app.post("/api/generate-summary", async (c) => {
       })
       .where(eq(schema.summaryRequests.id, summaryRequest.id));
 
-    return c.json({
-      requestId: summaryRequest.id,
-      episodeSummaries: allEpisodeSummaries,
-      trendAnalysis,
-      emailSent: sendEmail
-    });
+    // Check if we got any episode summaries
+    if (allEpisodeSummaries.length === 0) {
+      return c.json({
+        requestId: summaryRequest.id,
+        episodeSummaries: [],
+        trendAnalysis: null,
+        emailSent: sendEmail,
+        warning: "No episodes were processed. This might be due to YouTube API issues or no recent videos found."
+      });
+    }
+
+      const responseData = {
+    requestId: summaryRequest.id,
+    episodeSummaries: allEpisodeSummaries,
+    trendAnalysis,
+    emailSent: sendEmail
+  };
+  
+  console.log('📤 Sending response to frontend:', {
+    requestId: responseData.requestId,
+    episodeSummariesCount: responseData.episodeSummaries?.length || 0,
+    hasTrendAnalysis: !!responseData.trendAnalysis,
+    emailSent: responseData.emailSent
+  });
+  
+  return c.json(responseData);
 
   } catch (error) {
     console.error("Error in generate-summary:", error);
