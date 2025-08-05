@@ -1697,13 +1697,13 @@ app.get("/", (c) => {
             const results = document.getElementById('results');
             console.log('Results element:', results);
             
-            let html = '<h3>AI Channel Insights Overview</h3>';
+            let html = '<h3>Key Insights (all channels)</h3>';
             
             // 1. GENERAL OVERVIEW (Trend Analysis) - Display first
             if (data.trendAnalysis) {
                 html += '<div class="summary-item overview-section">' +
                     '<h4>🔍 General Overview & Trends</h4>' +
-                    '<p><strong>Meta Insights:</strong></p>' +
+                    '<p><strong>Overview:</strong></p>' +
                     '<p>' + data.trendAnalysis.metaInsights + '</p>' +
                     '<p><strong>Recurring Themes:</strong></p>' +
                     '<ul class="insights-list">' +
