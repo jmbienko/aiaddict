@@ -1,0 +1,17 @@
+{
+  "name": "youtube-mcp-server",
+  "version": "1.0.0",
+  "description": "YouTube MCP server for fetching video transcripts and channel data",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+          "dependencies": {
+          "@modelcontextprotocol/sdk": "^0.4.0"
+        },
+  "keywords": ["mcp", "youtube", "transcript", "ai"],
+  "author": "PodcastAddict",
+  "license": "MIT"
+} 
