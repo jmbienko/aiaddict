@@ -219,7 +219,7 @@ Format your response as JSON with the following structure:
   "fullSummary": "detailed summary text"
 }`;
 
-    const response = await ai.run("@cf/meta/llama-2-7b-chat-int8", {
+    const response = await ai.run("@cf/mistral/mistral-7b-instruct-v0.1", {
       messages: [{ role: "user", content: prompt }],
       max_tokens: 1000
     }) as any;
@@ -276,7 +276,7 @@ Format your response as JSON:
   "metaInsights": "detailed analysis text"
 }`;
 
-    const response = await ai.run("@cf/meta/llama-2-7b-chat-int8", {
+    const response = await ai.run("@cf/mistral/mistral-7b-instruct-v0.1", {
       messages: [{ role: "user", content: prompt }],
       max_tokens: 800
     }) as any;
