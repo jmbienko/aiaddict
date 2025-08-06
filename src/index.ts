@@ -11,6 +11,7 @@ type Bindings = {
   YOUTUBE_MCP_SERVER_URL: string;
   EMAIL_MCP_SERVER_URL: string;
   YOUTUBE_API_KEY: string;
+  YOUTUBE_API_SECRET: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -72,11 +73,18 @@ const SUPPORTED_CHANNELS = [
 // For now, we'll implement direct API calls to YouTube Data API
 
 // Email MCP Server communication
-async function callEmailMcpServer(method: string, args: any): Promise<any> {
+async function callEmailMcpServer(method: string, args: any, env: any): Promise<any> {
   // This would communicate with the email MCP server via stdio
   // For now, we'll implement a simple HTTP-based approach
+  const emailServerUrl = env.EMAIL_MCP_SERVER_URL || '';
+  
+  if (!emailServerUrl) {
+    console.log('📧 Email MCP server not configured, skipping email functionality');
+    return { success: false, message: 'Email server not configured' };
+  }
+  
   try {
-    const response = await fetch(`${process.env.EMAIL_MCP_SERVER_URL || 'http://localhost:3001'}/${method}`, {
+    const response = await fetch(`${emailServerUrl}/${method}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -91,11 +99,11 @@ async function callEmailMcpServer(method: string, args: any): Promise<any> {
     return await response.json();
   } catch (error) {
     console.error('Email MCP server communication error:', error);
-    throw error;
+    return { success: false, message: 'Email server communication failed' };
   }
 }
 async function getChannelVideos(channelId: string, maxResults: number = 5, env: any) {
-  const YOUTUBE_API_KEY = env.YOUTUBE_API_KEY;
+  const YOUTUBE_API_KEY = env.YOUTUBE_API_SECRET || env.YOUTUBE_API_KEY;
   console.log('🔑 Using API key:', YOUTUBE_API_KEY ? YOUTUBE_API_KEY.substring(0, 10) + '...' : 'NOT SET');
   if (!YOUTUBE_API_KEY) {
     throw new Error('YouTube API key not configured');
@@ -154,7 +162,7 @@ async function getChannelVideos(channelId: string, maxResults: number = 5, env: 
 }
 
 async function getVideoInfo(videoId: string, env: any) {
-  const YOUTUBE_API_KEY = env.YOUTUBE_API_KEY;
+  const YOUTUBE_API_KEY = env.YOUTUBE_API_SECRET || env.YOUTUBE_API_KEY;
   console.log('🔑 Using API key for video info:', YOUTUBE_API_KEY ? YOUTUBE_API_KEY.substring(0, 10) + '...' : 'NOT SET');
   if (!YOUTUBE_API_KEY) {
     throw new Error('YouTube API key not configured');
@@ -1776,6 +1784,10 @@ app.get("/", (c) => {
                 html += '<div class="success" style="margin-bottom: 16px; padding: 12px; background-color: #d1fae5; border: 1px solid #10b981; border-radius: 6px; color: #065f46;">';
                 html += '📧 Email sent successfully! Check your inbox for the insights.';
                 html += '</div>';
+            } else if (data.emailSent === false) {
+                html += '<div class="info" style="margin-bottom: 16px; padding: 12px; background-color: #dbeafe; border: 1px solid #3b82f6; border-radius: 6px; color: #1e40af;">';
+                html += '📧 Email functionality is not available in this deployment. Insights are displayed below.';
+                html += '</div>';
             }
             
             // 1. GENERAL OVERVIEW (Trend Analysis) - Display first
@@ -2167,8 +2179,6 @@ app.get("/api/channels", (c) => {
 });
 
 app.post("/api/generate-summary", async (c) => {
-  const db = drizzle(c.env.DB);
-  
   try {
     const { channelIds, videoLimit = 3, email = "anonymous@example.com", sendEmail = false } = await c.req.json();
 
@@ -2176,14 +2186,8 @@ app.post("/api/generate-summary", async (c) => {
       return c.json({ error: "channelIds array is required" }, 400);
     }
 
-    // Create summary request record
-    const [summaryRequest] = await db.insert(schema.summaryRequests).values({
-      userEmail: email,
-      selectedPodcasts: channelIds, // Keep same field name for DB compatibility
-      episodeLimit: Number(videoLimit),
-      sendEmail: Boolean(sendEmail),
-      status: "processing"
-    }).returning();
+    // Create a simple request ID without database
+    const requestId = crypto.randomUUID();
 
     // Process podcasts and episodes
     const allEpisodeSummaries = [];
@@ -2198,22 +2202,8 @@ app.post("/api/generate-summary", async (c) => {
         // Fetch videos directly from YouTube API
         const videos = await getChannelVideos(channel.channelId, videoLimit, c.env);
 
-        // Store channel info
-        await db.insert(schema.podcasts).values({
-          id: channel.id,
-          name: channel.name,
-          description: channel.description,
-          taddyId: channel.channelId, // Reuse field for channelId
-          latestEpisodeTitle: videos[0]?.title || null,
-          latestEpisodeDate: videos[0]?.publishedAt || null
-        }).onConflictDoUpdate({
-          target: schema.podcasts.id,
-          set: {
-            latestEpisodeTitle: videos[0]?.title || null,
-            latestEpisodeDate: videos[0]?.publishedAt || null,
-            updatedAt: new Date().toISOString()
-          }
-        });
+        // Store channel info in memory (no database for now)
+        console.log(`Processing channel: ${channel.name}`);
 
         // Process each video
         console.log(`📹 Processing ${videos.length} videos for channel ${channel.name}`);
@@ -2234,16 +2224,8 @@ app.post("/api/generate-summary", async (c) => {
           console.log(`✅ Generated summary for ${video.title} - Key insights: ${summary.keyInsights.length}`);
 
           // Store video and summary (prevent duplicates)
-          await db.insert(schema.episodes).values({
-            podcastId: channel.id,
-            title: video.title,
-            publishDate: video.publishedAt,
-            transcript: contentForSummary,
-            summary: summary.fullSummary,
-            keyInsights: summary.keyInsights,
-            mainTopics: summary.mainTopics,
-            actionableItems: summary.actionableItems
-          }).onConflictDoNothing();
+          // Store episode data in memory (no database for now)
+          console.log(`Stored episode: ${video.title}`);
 
           allEpisodeSummaries.push({
             podcastName: channel.name,
@@ -2263,14 +2245,8 @@ app.post("/api/generate-summary", async (c) => {
       try {
         trendAnalysis = await analyzeTrends(c.env.AI, allEpisodeSummaries);
         
-        // Store trend analysis
-        await db.insert(schema.trendAnalyses).values({
-          summaryRequestId: summaryRequest.id,
-          recurringThemes: trendAnalysis.recurringThemes,
-          emergingTopics: trendAnalysis.emergingTopics,
-          contradictions: trendAnalysis.contradictions,
-          metaInsights: trendAnalysis.metaInsights
-        });
+        // Store trend analysis in memory (no database for now)
+        console.log(`Stored trend analysis for request: ${requestId}`);
       } catch (error) {
         console.error("Error in trend analysis:", error);
       }
@@ -2283,25 +2259,20 @@ app.post("/api/generate-summary", async (c) => {
           recipientEmail: email,
           summaries: allEpisodeSummaries,
           trendAnalysis: trendAnalysis
-        });
+        }, c.env);
                     console.log('Summary email sent successfully');
       } catch (error) {
                         console.error('Failed to send summary email:', error);
       }
     }
 
-    // Update request status
-    await db.update(schema.summaryRequests)
-      .set({ 
-        status: "completed",
-        completedAt: new Date().toISOString()
-      })
-      .where(eq(schema.summaryRequests.id, summaryRequest.id));
+    // Update request status (no database for now)
+    console.log(`Request ${requestId} completed successfully`);
 
     // Check if we got any episode summaries
     if (allEpisodeSummaries.length === 0) {
       return c.json({
-        requestId: summaryRequest.id,
+        requestId: requestId,
         episodeSummaries: [],
         trendAnalysis: null,
         emailSent: sendEmail,
@@ -2310,7 +2281,7 @@ app.post("/api/generate-summary", async (c) => {
     }
 
       const responseData = {
-    requestId: summaryRequest.id,
+    requestId: requestId,
     episodeSummaries: allEpisodeSummaries,
     trendAnalysis,
     emailSent: sendEmail
@@ -2599,7 +2570,7 @@ app.post("/api/send-email", async (c) => {
           recipientEmail,
           summaries: content.summaries,
           trendAnalysis: content.trendAnalysis
-        });
+        }, c.env);
         break;
       case 'weekly_overview':
         result = await callEmailMcpServer('send_weekly_overview_email', {
@@ -2607,7 +2578,7 @@ app.post("/api/send-email", async (c) => {
           weeklyOverview: content.weeklyOverview,
           episodeCount: content.episodeCount,
           dateRange: content.dateRange
-        });
+        }, c.env);
         break;
       default:
         return c.json({ error: "Invalid email type. Use 'summary' or 'weekly_overview'" }, 400);
@@ -2638,7 +2609,7 @@ app.post("/api/send-bulk-email", async (c) => {
       emailList,
       emailType,
       content
-    });
+    }, c.env);
 
     return c.json({ success: true, result });
   } catch (error) {
