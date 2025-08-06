@@ -199,7 +199,8 @@ async function summarizeEpisode(ai: Ai, transcript: string, title: string): Prom
   actionableItems: string[];
   fullSummary: string;
 }> {
-  const prompt = `Analyze this podcast episode transcript and provide a structured summary:
+  try {
+    const prompt = `Analyze this podcast episode transcript and provide a structured summary:
 
 Title: ${title}
 Transcript: ${transcript}
@@ -218,20 +219,30 @@ Format your response as JSON with the following structure:
   "fullSummary": "detailed summary text"
 }`;
 
-  const response = await ai.run("@cf/mistral/mistral-7b-instruct-v0.1", {
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 1000
-  }) as any;
+    const response = await ai.run("@cf/meta/llama-2-7b-chat-int8", {
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1000
+    }) as any;
 
-  try {
-    return JSON.parse(response.response || "{}");
+    try {
+      return JSON.parse(response.response || "{}");
+    } catch (error) {
+      // Fallback parsing if JSON is malformed
+      return {
+        keyInsights: ["Unable to parse insights"],
+        mainTopics: ["Unable to parse topics"],
+        actionableItems: ["Unable to parse actions"],
+        fullSummary: (response.response as string) || "Unable to generate summary"
+      };
+    }
   } catch (error) {
-    // Fallback parsing if JSON is malformed
+    console.error(`AI summarization failed for "${title}":`, error);
+    // Return a fallback summary when AI fails
     return {
-      keyInsights: ["Unable to parse insights"],
-      mainTopics: ["Unable to parse topics"],
-      actionableItems: ["Unable to parse actions"],
-      fullSummary: (response.response as string) || "Unable to generate summary"
+      keyInsights: ["AI summarization temporarily unavailable"],
+      mainTopics: ["Content analysis pending"],
+      actionableItems: ["Please try again later"],
+      fullSummary: `Summary for "${title}" is temporarily unavailable due to AI service issues. Please try again in a few moments.`
     };
   }
 }
@@ -242,11 +253,12 @@ async function analyzeTrends(ai: Ai, summaries: any[]): Promise<{
   contradictions: string[];
   metaInsights: string;
 }> {
-  const summariesText = summaries.map(s => 
-    `${s.title}: ${s.fullSummary}\nKey Insights: ${s.keyInsights.join(", ")}\nTopics: ${s.mainTopics.join(", ")}`
-  ).join("\n\n");
+  try {
+    const summariesText = summaries.map(s => 
+      `${s.title}: ${s.fullSummary}\nKey Insights: ${s.keyInsights.join(", ")}\nTopics: ${s.mainTopics.join(", ")}`
+    ).join("\n\n");
 
-  const prompt = `Analyze these podcast episode summaries to identify cross-cutting patterns and trends:
+    const prompt = `Analyze these podcast episode summaries to identify cross-cutting patterns and trends:
 
 ${summariesText}
 
@@ -264,19 +276,28 @@ Format your response as JSON:
   "metaInsights": "detailed analysis text"
 }`;
 
-  const response = await ai.run("@cf/mistral/mistral-7b-instruct-v0.1", {
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 800
-  }) as any;
+    const response = await ai.run("@cf/meta/llama-2-7b-chat-int8", {
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 800
+    }) as any;
 
-  try {
-    return JSON.parse(response.response || "{}");
+    try {
+      return JSON.parse(response.response || "{}");
+    } catch (error) {
+      return {
+        recurringThemes: ["Unable to parse themes"],
+        emergingTopics: ["Unable to parse topics"],
+        contradictions: ["Unable to parse contradictions"],
+        metaInsights: (response.response as string) || "Unable to generate meta insights"
+      };
+    }
   } catch (error) {
+    console.error("AI trend analysis failed:", error);
     return {
-      recurringThemes: ["Unable to parse themes"],
-      emergingTopics: ["Unable to parse topics"],
-      contradictions: ["Unable to parse contradictions"],
-      metaInsights: (response.response as string) || "Unable to generate meta insights"
+      recurringThemes: ["AI analysis temporarily unavailable"],
+      emergingTopics: ["Content analysis pending"],
+      contradictions: ["Analysis pending"],
+      metaInsights: "Trend analysis is temporarily unavailable due to AI service issues. Please try again in a few moments."
     };
   }
 }
@@ -2216,6 +2237,10 @@ app.post("/api/generate-summary", async (c) => {
 
           // Summarize video using AI
           console.log(`🤖 Starting AI summary for: ${video.title}`);
+          if (!c.env.AI) {
+            console.error("AI binding not available");
+            throw new Error("AI service not available");
+          }
           const summary = await summarizeEpisode(
             c.env.AI,
             contentForSummary,
@@ -2241,7 +2266,7 @@ app.post("/api/generate-summary", async (c) => {
 
     // Perform trend analysis
     let trendAnalysis = null;
-    if (allEpisodeSummaries.length > 1) {
+    if (allEpisodeSummaries.length > 1 && c.env.AI) {
       try {
         trendAnalysis = await analyzeTrends(c.env.AI, allEpisodeSummaries);
         
