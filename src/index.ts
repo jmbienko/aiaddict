@@ -379,16 +379,18 @@ app.get("/", (c) => {
         }
         
         .logo-img {
-            height: 40px;
+            height: 60px;
             width: auto;
-            max-width: 160px;
+            max-width: 200px;
             object-fit: contain;
+            display: block;
+            margin: 0 auto;
         }
         
         @media (max-width: 768px) {
             .logo-img {
-                height: 32px;
-                max-width: 120px;
+                height: 48px;
+                max-width: 160px;
             }
         }
         
@@ -828,6 +830,13 @@ app.get("/", (c) => {
             border-radius: 1px;
         }
         
+        .insights-heading {
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
         /* Channel Selection */
         .channel-selection {
             background: white;
@@ -835,6 +844,7 @@ app.get("/", (c) => {
             padding: 24px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border: 1px solid #e5e7eb;
+            margin-top: 80px;
             margin-bottom: 32px;
         }
         
@@ -1088,7 +1098,8 @@ app.get("/", (c) => {
         <header class="header">
             <div class="header-content">
                 <div class="logo">
-                    <h1 style="margin: 0; color: #22BFFD; font-size: 32px; font-weight: bold;">AI Addict</h1>
+                    <img src="/logoaddict.png" alt="AI Addict" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <h1 style="margin: 0; color: #22BFFD; font-size: 32px; font-weight: bold; display: none;">AI Addict</h1>
                 </div>
                 <button class="settings-btn" onclick="showSettingsModal()">
                     ⚙️
@@ -1162,6 +1173,16 @@ app.get("/", (c) => {
                     <button class="btn" id="generateBtn" onclick="generateSummary()">
                         Generate Key Insights
                     </button>
+                </div>
+                <div style="margin-top: 16px; text-align: center;">
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: #374151;">
+                        <input type="checkbox" id="sendEmailCheckbox" style="width: 16px; height: 16px;" onchange="toggleEmailInput()">
+                        📧 Send me the insights via email
+                    </label>
+                    <div id="emailInputContainer" style="margin-top: 12px; display: none;">
+                        <input type="email" id="emailInput" placeholder="Enter your email address" 
+                               style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; width: 250px; font-size: 14px;">
+                    </div>
                 </div>
                 <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0; text-align: left;">Videos released in the last 7 days</p>
             </div>
@@ -1644,6 +1665,25 @@ app.get("/", (c) => {
             ctx.fillText('Topic Mentions Over Time', (canvas.width / dpr) / 2, 20);
         }
 
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function toggleEmailInput() {
+            const checkbox = document.getElementById('sendEmailCheckbox');
+            const emailContainer = document.getElementById('emailInputContainer');
+            const emailInput = document.getElementById('emailInput');
+            
+            if (checkbox.checked) {
+                emailContainer.style.display = 'block';
+                emailInput.focus();
+            } else {
+                emailContainer.style.display = 'none';
+                emailInput.value = '';
+            }
+        }
+
         async function generateSummary() {
             console.log('generateSummary function called');
             
@@ -1653,11 +1693,29 @@ app.get("/", (c) => {
             const allChannelIds = channels.map(channel => channel.id);
             console.log('Using all channels:', allChannelIds);
             
+            // Check if email checkbox is checked
+            const sendEmailCheckbox = document.getElementById('sendEmailCheckbox');
+            const emailInput = document.getElementById('emailInput');
+            const sendEmail = sendEmailCheckbox ? sendEmailCheckbox.checked : false;
+            const email = sendEmail && emailInput ? emailInput.value.trim() : '';
+            
+            // Validate email if checkbox is checked
+            if (sendEmail && !email) {
+                showError('Please enter your email address');
+                return;
+            }
+            
+            if (sendEmail && !isValidEmail(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+            
             const btn = document.getElementById('generateBtn');
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
             
             console.log('🔍 Elements found:', { btn, loading, results });
+            console.log('📧 Email checkbox checked:', sendEmail);
             
             btn.disabled = true;
             loading.classList.add('show');
@@ -1665,7 +1723,11 @@ app.get("/", (c) => {
             
             try {
                 console.log('Making API request to /api/generate-summary');
-                console.log('Request body:', { channelIds: allChannelIds, videoLimit: parseInt(episodeLimit) });
+                console.log('Request body:', { 
+                    channelIds: allChannelIds, 
+                    videoLimit: parseInt(episodeLimit),
+                    sendEmail: sendEmail
+                });
                 
                 const response = await fetch('/api/generate-summary', {
                     method: 'POST',
@@ -1674,7 +1736,9 @@ app.get("/", (c) => {
                     },
                     body: JSON.stringify({
                         channelIds: allChannelIds,
-                        videoLimit: parseInt(episodeLimit)
+                        videoLimit: parseInt(episodeLimit),
+                        sendEmail: sendEmail,
+                        email: email
                     })
                 });
                 
@@ -1701,10 +1765,18 @@ app.get("/", (c) => {
             console.log('showResults called with data:', data);
             console.log('episodeSummaries length:', data.episodeSummaries ? data.episodeSummaries.length : 'undefined');
             console.log('trendAnalysis:', data.trendAnalysis);
+            console.log('Email sent:', data.emailSent);
             const results = document.getElementById('results');
             console.log('Results element:', results);
             
             let html = '<h3>Key Insights (all channels)</h3>';
+            
+            // Show email status if email was sent
+            if (data.emailSent) {
+                html += '<div class="success" style="margin-bottom: 16px; padding: 12px; background-color: #d1fae5; border: 1px solid #10b981; border-radius: 6px; color: #065f46;">';
+                html += '📧 Email sent successfully! Check your inbox for the insights.';
+                html += '</div>';
+            }
             
             // 1. GENERAL OVERVIEW (Trend Analysis) - Display first
             if (data.trendAnalysis) {
@@ -1712,11 +1784,11 @@ app.get("/", (c) => {
                     '<h4>🔍 General Overview & Trends</h4>' +
                     '<p><strong>Overview:</strong></p>' +
                     '<p>' + data.trendAnalysis.metaInsights + '</p>' +
-                    '<p><strong>Recurring Themes:</strong></p>' +
+                    '<p class="insights-heading"><strong>Recurring Themes:</strong></p>' +
                     '<ul class="insights-list">' +
                     data.trendAnalysis.recurringThemes.map(theme => '<li>' + theme + '</li>').join('') +
                     '</ul>' +
-                    '<p><strong>Emerging Topics:</strong></p>' +
+                    '<p class="insights-heading"><strong>Emerging Topics:</strong></p>' +
                     '<ul class="insights-list">' +
                     data.trendAnalysis.emergingTopics.map(topic => '<li>' + topic + '</li>').join('') +
                     '</ul>' +
@@ -1727,18 +1799,17 @@ app.get("/", (c) => {
             if (data.episodeSummaries && data.episodeSummaries.length > 0) {
                 html += '<div class="section-divider"></div>';
                 html += '<h4>📝 Individual Episode Summaries</h4>';
-                html += '<p><em>Detailed breakdown of each episode from all channels:</em></p>';
                 
                 data.episodeSummaries.forEach((episode, index) => {
                     html += '<div class="summary-item episode-summary">' +
                         '<h4>' + (index + 1) + '. ' + episode.podcastName + ' - ' + episode.title + '</h4>' +
                         '<p><strong>Summary:</strong></p>' +
                         '<p>' + episode.fullSummary + '</p>' +
-                        '<p><strong>Key Insights:</strong></p>' +
+                        '<p class="insights-heading"><strong>Key Insights:</strong></p>' +
                         '<ul class="insights-list">' +
                         episode.keyInsights.map(insight => '<li>' + insight + '</li>').join('') +
                         '</ul>' +
-                        '<p><strong>Actionable Items:</strong></p>' +
+                        '<p class="insights-heading"><strong>Actionable Items:</strong></p>' +
                         '<ul class="insights-list">' +
                         episode.actionableItems.map(item => '<li>' + item + '</li>').join('') +
                         '</ul>' +
@@ -2068,6 +2139,26 @@ app.get("/", (c) => {
 </html>`;
   
   return c.html(html);
+});
+
+// Serve static files
+app.get("/logoaddict.png", async (c) => {
+  try {
+    const response = await fetch('https://raw.githubusercontent.com/jmbienko/aiaddict/main/logoaddict.png');
+    if (!response.ok) {
+      throw new Error('Failed to fetch logo');
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return new Response(arrayBuffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=31536000'
+      }
+    });
+  } catch (error) {
+    console.error('Error serving logo:', error);
+    return c.text('Logo not found', 404);
+  }
 });
 
 // API Routes

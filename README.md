@@ -1,102 +1,223 @@
-## 🪿 HONC
+# 🎧 AI Addict - Podcast Summarization MCP Server
 
-This is a project created with the `create-honc-app` template. 
+> **AI-powered productivity tool that automatically summarizes YouTube AI podcast episodes and delivers key insights via email**
 
-Learn more about the HONC stack on the [website](https://honc.dev) or the main [repo](https://github.com/fiberplane/create-honc-app).
+## 🚀 Project Overview
 
-There is also an [Awesome HONC collection](https://github.com/fiberplane/awesome-honc) with further guides, use cases and examples.
+AI Addict is a **Model Context Protocol (MCP) server** built for the Vibe Coding Challenge that helps users stay productive and informed in the fast-moving AI space. It automatically processes YouTube AI podcast episodes, generates intelligent summaries, analyzes trends across multiple channels, and delivers insights directly to your email.
 
-### Getting started
-[D1](https://developers.cloudflare.com/d1/) is Cloudflare's serverless SQL database. Running HONC with a D1 database involves two key steps: first, setting up the project locally, and second, deploying it in production. You can spin up your D1 database locally using Wrangler. If you're planning to deploy your application for production use, ensure that you have created a D1 instance in your Cloudflare account.
+## 🛠️ MCP Tools & Features
 
-### Project structure
+### 1. **Content Summarization Tool**
+- **Purpose**: Automatically summarizes YouTube podcast episodes using AI
+- **Input**: YouTube video URLs and content from AI-focused channels
+- **Output**: Structured summaries with key insights and actionable items
+- **Productivity Value**: Saves hours of listening time → minutes of reading
 
-```#
-├── src
-│   ├── index.ts # Hono app entry point
-│   └── db
-│       └── schema.ts # Database schema
-├── .dev.vars.example # Example .dev.vars file
-├── .prod.vars.example # Example .prod.vars file
-├── seed.ts # Optional script to seed the db
-├── drizzle.config.ts # Drizzle configuration
-├── package.json
-├── tsconfig.json # TypeScript configuration
-└── wrangler.toml # Cloudflare Workers configuration
+### 2. **Trend Analysis Tool**
+- **Purpose**: Analyzes patterns across multiple episodes and channels
+- **Input**: Multiple episode summaries from various AI channels
+- **Output**: Recurring themes, emerging topics, and meta insights
+- **Productivity Value**: Helps identify important trends and stay updated
+
+### 3. **Email Delivery Tool**
+- **Purpose**: Sends comprehensive insights directly to user's email
+- **Input**: Summaries and trend analysis
+- **Output**: Beautifully formatted email with all insights
+- **Productivity Value**: Makes insights easily accessible and shareable
+
+## 🏗️ Technical Architecture
+
+### **External APIs & Services**
+- **YouTube Data API v3**: Fetches channel videos and metadata
+- **Cloudflare Workers AI**: Generates AI summaries and analysis
+- **SMTP (Gmail)**: Sends formatted emails
+- **D1 Database**: Stores request history and summaries
+
+### **Infrastructure**
+- **Cloudflare Workers**: Serverless runtime environment
+- **Hono**: Modern web framework for the API
+- **Drizzle ORM**: Type-safe database operations
+- **Model Context Protocol**: Standardized tool integration
+
+### **Tool Integration Flow**
+```
+YouTube API → Content Fetching Tool
+     ↓
+Cloudflare AI → Summarization Tool
+     ↓
+D1 Database → Storage Tool
+     ↓
+Trend Analysis → Pattern Recognition Tool
+     ↓
+Email MCP → Delivery Tool
 ```
 
-### Commands for local development
+## 🎯 Supported AI Podcast Channels
 
-Run the migrations and (optionally) seed the database:
+The application comes pre-configured with popular AI-focused YouTube channels:
 
-```sh
-# this is a convenience script that runs db:touch, db:generate, db:migrate, and db:seed
-npm run db:setup
+- **Two Minute Papers** - AI research summaries
+- **Matthew Berman** - AI news and tutorials
+- **AI Explained** - Deep dives into AI concepts
+- **Matt Wolfe** - AI tools and trends
+- **David Shapiro** - AI philosophy and future
+- **Yannic Kilcher** - AI research papers
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js (v18+)
+- Cloudflare account
+- YouTube Data API v3 key
+- Gmail account (for email delivery)
+
+### 1. Clone and Setup
+```bash
+git clone https://github.com/jmbienko/aiaddict.git
+cd aiaddict
+npm install
 ```
 
-Run the development server:
+### 2. Environment Configuration
+Create `.dev.vars` file:
+```bash
+YOUTUBE_API_KEY=your_youtube_api_key_here
+EMAIL_MCP_SERVER_URL=http://localhost:3001
+```
 
-```sh
+### 3. Email MCP Server Setup
+```bash
+cd email-mcp-server
+npm install
+cp env.example .env
+# Edit .env with your Gmail credentials
+npm run http
+```
+
+### 4. Start Development Server
+```bash
+# In the main project directory
 npm run dev
 ```
 
-As you iterate on the database schema, you'll need to generate a new migration file and apply it like so:
+### 5. Access the Application
+Open `http://localhost:8787` in your browser
 
-```sh
-npm run db:generate
-npm run db:migrate
+## 📧 Email Configuration
+
+The email MCP server requires Gmail SMTP configuration:
+
+```bash
+# In email-mcp-server/.env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+EMAIL_FROM=your_email@gmail.com
 ```
 
-### Commands for deployment
+**Note**: Use an App Password, not your regular Gmail password.
 
-Before deploying your worker to Cloudflare, ensure that you have a running D1 instance on Cloudflare to connect your worker to.
+## 🎨 Features
 
-You can create a D1 instance by navigating to the `Workers & Pages` section and selecting `D1 SQL Database.`
+### **Smart Content Processing**
+- Automatic video content extraction
+- AI-powered summarization with key insights
+- Actionable items extraction
+- Multi-channel trend analysis
 
-Alternatively, you can create a D1 instance using the CLI:
+### **Modern UI/UX**
+- Clean, responsive interface
+- Real-time progress indicators
+- Error handling and user feedback
+- Email delivery confirmation
 
-```sh
-npx wrangler d1 create <database-name>
+### **Productivity Focus**
+- Batch processing of multiple channels
+- Configurable episode limits
+- Email delivery for offline access
+- Trend identification across channels
+
+## 🏆 Vibe Coding Challenge Compliance
+
+This project meets all Vibe Coding Challenge requirements:
+
+✅ **Fiberplane Codegen**: Used for initial MCP server build  
+✅ **Local Development**: Downloaded and refined with Cursor  
+✅ **Cloudflare Workers**: Deployed on Cloudflare  
+✅ **3+ MCP Tools**: Content summarization, trend analysis, email delivery  
+✅ **URL Access**: Deployed and accessible via URL  
+✅ **Productivity Focus**: Helps users stay informed and productive  
+
+## 📁 Project Structure
+
+```
+PodcastAddict/
+├── src/
+│   ├── index.ts          # Main application (Hono + frontend)
+│   └── db/
+│       └── schema.ts     # Database schema
+├── email-mcp-server/     # Email MCP server
+│   ├── server.js         # MCP server implementation
+│   ├── http-server.js    # HTTP server for email tools
+│   └── package.json
+├── drizzle/              # Database migrations
+├── .dev.vars             # Local environment variables
+├── wrangler.jsonc        # Cloudflare Workers config
+└── README.md
 ```
 
-After creating the database, update the `wrangler.toml` file with the database id.
+## 🔧 Development Commands
 
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "honc-d1-database"
-database_id = "<database-id-you-just-created>"
-migrations_dir = "drizzle/migrations"
+```bash
+# Database operations
+npm run db:setup          # Setup database with migrations
+npm run db:generate       # Generate new migration
+npm run db:migrate        # Apply migrations
+
+# Development
+npm run dev               # Start development server
+npm run deploy            # Deploy to Cloudflare Workers
+
+# Email MCP Server
+cd email-mcp-server
+npm run http              # Start email server
 ```
 
-Include the following information in a `.prod.vars` file:
+## 🌟 Key Benefits
 
-```sh
-CLOUDFLARE_D1_TOKEN="" # An API token with D1 edit permissions. You can create API tokens from your Cloudflare profile
-CLOUDFLARE_ACCOUNT_ID="" # Find your Account id on the Workers & Pages overview (upper right)
-CLOUDFLARE_DATABASE_ID="" # Find the database ID under workers & pages under D1 SQL Database and by selecting the created database
-```
+### **For Content Creators**
+- Stay updated on AI trends across multiple sources
+- Identify emerging topics and themes
+- Save time on content research
 
-If you haven’t generated the latest migration files yet, run:
-```shell
-npm run db:generate
-```
+### **For AI Enthusiasts**
+- Efficiently consume AI content
+- Get actionable insights from episodes
+- Track industry trends over time
 
-Afterwards, run the migration script for production:
-```shell
-npm run db:migrate:prod
-```
+### **For Productivity Seekers**
+- Automate content consumption
+- Get insights delivered to email
+- Focus on what matters most
 
-Change the name of the project in `wrangler.toml` to something appropriate for your project:
+## 🤝 Contributing
 
-```toml
-name = "my-d1-project"
-```
+This project was built for the Vibe Coding Challenge. Feel free to fork and enhance it with additional features like:
 
-Finally, deploy your worker
+- More AI podcast channels
+- Advanced trend analysis
+- Custom email templates
+- Mobile app integration
+- Social media sharing
 
-```shell 
-npm run deploy
-```
+## 📄 License
+
+MIT License - feel free to use this project for learning and development.
+
+---
+
+**Built with ❤️ for the Vibe Coding Challenge using Fiberplane Codegen, Cloudflare Workers, and Model Context Protocol**
 
 

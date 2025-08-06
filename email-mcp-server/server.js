@@ -264,34 +264,200 @@ class EmailMCPServer {
       <html>
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; }
-          .section { margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; }
-          .episode { margin: 20px 0; padding: 15px; background: white; border-radius: 6px; border-left: 4px solid #667eea; }
-          .insights { background: #e8f4fd; padding: 10px; border-radius: 4px; margin: 10px 0; }
-          .trends { background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107; }
-          h1, h2, h3 { color: #667eea; }
-          .footer { text-align: center; margin-top: 40px; padding: 20px; color: #666; font-size: 0.9em; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
+            line-height: 1.6; 
+            color: #1f2937; 
+            background-color: #f9fafb;
+            -webkit-font-smoothing: antialiased;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #22BFFD 0%, #1e40af 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+          }
+          .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+          }
+          .logo { 
+            font-size: 32px; 
+            font-weight: 700; 
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+          }
+          .tagline { 
+            font-size: 16px; 
+            opacity: 0.9; 
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+          }
+          .content { padding: 40px 30px; }
+          .section { 
+            margin-bottom: 40px; 
+            background: #ffffff; 
+            border-radius: 12px; 
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+          }
+          .section-header { 
+            background: #f8fafc; 
+            padding: 20px 24px; 
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .section-title { 
+            font-size: 18px; 
+            font-weight: 600; 
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .section-content { padding: 24px; }
+          .episode { 
+            margin-bottom: 32px; 
+            padding: 24px; 
+            background: #f9fafb; 
+            border-radius: 8px; 
+            border-left: 4px solid #22BFFD;
+          }
+          .episode:last-child { margin-bottom: 0; }
+          .episode-title { 
+            font-size: 16px; 
+            font-weight: 600; 
+            color: #1f2937; 
+            margin-bottom: 12px;
+            line-height: 1.4;
+          }
+          .episode-channel { 
+            font-size: 14px; 
+            color: #6b7280; 
+            margin-bottom: 16px;
+            font-weight: 500;
+          }
+          .insights-section { 
+            background: #eff6ff; 
+            padding: 16px; 
+            border-radius: 6px; 
+            margin: 16px 0;
+            border-left: 3px solid #3b82f6;
+          }
+          .insights-title { 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: #1e40af; 
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .insights-list { 
+            list-style: none; 
+            margin: 0; 
+            padding: 0;
+          }
+          .insights-list li { 
+            padding: 4px 0; 
+            color: #374151;
+            position: relative;
+            padding-left: 16px;
+          }
+          .insights-list li::before { 
+            content: '•'; 
+            color: #3b82f6; 
+            font-weight: bold; 
+            position: absolute;
+            left: 0;
+          }
+          .trends { 
+            background: #fef3c7; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid #f59e0b;
+          }
+          .trends-title { 
+            font-size: 16px; 
+            font-weight: 600; 
+            color: #92400e; 
+            margin-bottom: 12px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 30px; 
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280; 
+            font-size: 14px;
+          }
+          .footer-text { margin-bottom: 8px; }
+          .timestamp { font-size: 12px; opacity: 0.7; }
+          @media (max-width: 600px) {
+            .container { margin: 0; }
+            .header { padding: 30px 20px; }
+            .content { padding: 20px; }
+            .section-content { padding: 16px; }
+            .episode { padding: 16px; }
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎙️ AI Podcast Summary</h1>
-            <p>Your personalized podcast insights are ready!</p>
+            <div class="logo">AI ADDICT</div>
+            <div class="tagline">Key insights from your favorite AI channels are ready</div>
           </div>
+          <div class="content">
     `;
 
     // Add trend analysis if available
     if (trendAnalysis) {
       html += `
         <div class="section">
-          <h2>🔍 Trend Analysis</h2>
-          <div class="trends">
-            <p><strong>Meta Insights:</strong></p>
-            <p>${trendAnalysis}</p>
+          <div class="section-header">
+            <div class="section-title">🔍 Trend Analysis</div>
+          </div>
+          <div class="section-content">
+            <div class="trends">
+              <div class="trends-title">Meta Insights</div>
+              <p style="color: #374151; line-height: 1.6; margin-bottom: 16px;">${trendAnalysis.metaInsights || 'No meta insights available'}</p>
+              
+              ${trendAnalysis.recurringThemes && trendAnalysis.recurringThemes.length > 0 ? `
+              <div class="insights-section">
+                <div class="insights-title">Recurring Themes</div>
+                <ul class="insights-list">
+                  ${trendAnalysis.recurringThemes.map(theme => `<li>${theme}</li>`).join('')}
+                </ul>
+              </div>
+              ` : ''}
+              
+              ${trendAnalysis.emergingTopics && trendAnalysis.emergingTopics.length > 0 ? `
+              <div class="insights-section">
+                <div class="insights-title">Emerging Topics</div>
+                <ul class="insights-list">
+                  ${trendAnalysis.emergingTopics.map(topic => `<li>${topic}</li>`).join('')}
+                </ul>
+              </div>
+              ` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -301,26 +467,29 @@ class EmailMCPServer {
     if (summaries && summaries.length > 0) {
       html += `
         <div class="section">
-          <h2>📝 Episode Summaries</h2>
+          <div class="section-header">
+            <div class="section-title">📝 Episode Summaries</div>
+          </div>
+          <div class="section-content">
       `;
 
       summaries.forEach(episode => {
         html += `
           <div class="episode">
-            <h3>${episode.podcastName} - ${episode.title}</h3>
-            <p><strong>Summary:</strong></p>
-            <p>${episode.fullSummary}</p>
+            <div class="episode-channel">${episode.podcastName}</div>
+            <div class="episode-title">${episode.title}</div>
+            <p style="color: #374151; line-height: 1.6; margin-bottom: 16px;">${episode.fullSummary}</p>
             
-            <div class="insights">
-              <p><strong>Key Insights:</strong></p>
-              <ul>
+            <div class="insights-section">
+              <div class="insights-title">Key Insights</div>
+              <ul class="insights-list">
                 ${episode.keyInsights.map(insight => `<li>${insight}</li>`).join('')}
               </ul>
             </div>
             
-            <div class="insights">
-              <p><strong>Actionable Items:</strong></p>
-              <ul>
+            <div class="insights-section">
+              <div class="insights-title">Actionable Items</div>
+              <ul class="insights-list">
                 ${episode.actionableItems.map(item => `<li>${item}</li>`).join('')}
               </ul>
             </div>
@@ -328,13 +497,20 @@ class EmailMCPServer {
         `;
       });
 
-      html += `</div>`;
+      html += `</div></div>`;
     }
 
     html += `
+          </div>
           <div class="footer">
-            <p>Generated by AI Podcast Summarizer</p>
-            <p>Timestamp: ${new Date().toISOString()}</p>
+            <div class="footer-text">Generated by AI Addict</div>
+            <div class="timestamp">${new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</div>
           </div>
         </div>
       </body>
