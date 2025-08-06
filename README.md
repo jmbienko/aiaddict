@@ -6,6 +6,12 @@
 
 AI Addict is a **Model Context Protocol (MCP) server** built for the Vibe Coding Challenge that helps users stay productive and informed in the fast-moving AI space. It automatically processes YouTube AI podcast episodes, generates intelligent summaries, analyzes trends across multiple channels, and delivers insights directly to your email.
 
+## 🌐 Live Demo
+
+**🎯 Production URLs:**
+- **Main Application**: https://aiaddict.aiaddict.workers.dev
+- **Email Worker**: https://aiaddict-email.aiaddict.workers.dev
+
 ## 🛠️ MCP Tools & Features
 
 ### 1. **Content Summarization Tool**
@@ -31,7 +37,7 @@ AI Addict is a **Model Context Protocol (MCP) server** built for the Vibe Coding
 ### **External APIs & Services**
 - **YouTube Data API v3**: Fetches channel videos and metadata
 - **Cloudflare Workers AI**: Generates AI summaries and analysis
-- **SMTP (Gmail)**: Sends formatted emails
+- **Cloudflare Workers**: Serverless email delivery
 - **D1 Database**: Stores request history and summaries
 
 ### **Infrastructure**
@@ -39,6 +45,12 @@ AI Addict is a **Model Context Protocol (MCP) server** built for the Vibe Coding
 - **Hono**: Modern web framework for the API
 - **Drizzle ORM**: Type-safe database operations
 - **Model Context Protocol**: Standardized tool integration
+
+### **Security Features**
+- **Cloudflare Secrets**: Secure API key management
+- **Environment Variables**: Protected configuration
+- **CORS Support**: Cross-origin request handling
+- **Error Handling**: Robust error management
 
 ### **Tool Integration Flow**
 ```
@@ -50,7 +62,7 @@ D1 Database → Storage Tool
      ↓
 Trend Analysis → Pattern Recognition Tool
      ↓
-Email MCP → Delivery Tool
+Email Worker → Delivery Tool
 ```
 
 ## 🎯 Supported AI Podcast Channels
@@ -70,7 +82,6 @@ The application comes pre-configured with popular AI-focused YouTube channels:
 - Node.js (v18+)
 - Cloudflare account
 - YouTube Data API v3 key
-- Gmail account (for email delivery)
 
 ### 1. Clone and Setup
 ```bash
@@ -86,7 +97,8 @@ YOUTUBE_API_KEY=your_youtube_api_key_here
 EMAIL_MCP_SERVER_URL=http://localhost:3001
 ```
 
-### 3. Email MCP Server Setup
+### 3. Local Email Server (Optional)
+For local development with email functionality:
 ```bash
 cd email-mcp-server
 npm install
@@ -104,9 +116,34 @@ npm run dev
 ### 5. Access the Application
 Open `http://localhost:8787` in your browser
 
+## 🚀 Production Deployment
+
+### 1. Cloudflare Setup
+```bash
+# Create D1 database
+npx wrangler d1 create aiaddict-database
+
+# Set YouTube API key as secret
+npx wrangler secret put YOUTUBE_API_SECRET
+# Enter your YouTube API key when prompted
+
+# Deploy main application
+npx wrangler deploy src/index.ts --name aiaddict
+
+# Deploy email worker
+npx wrangler deploy email-worker.js --name aiaddict-email
+```
+
+### 2. Environment Configuration
+Update `wrangler.jsonc` with your database ID and configure email worker URL.
+
 ## 📧 Email Configuration
 
-The email MCP server requires Gmail SMTP configuration:
+### **Production (Recommended)**
+The application uses a Cloudflare Worker for email delivery in production, eliminating the need for SMTP configuration.
+
+### **Local Development**
+For local email testing, configure Gmail SMTP:
 
 ```bash
 # In email-mcp-server/.env
@@ -139,6 +176,12 @@ EMAIL_FROM=your_email@gmail.com
 - Email delivery for offline access
 - Trend identification across channels
 
+### **Security & Reliability**
+- Secure API key management via Cloudflare Secrets
+- Serverless architecture for scalability
+- Robust error handling and logging
+- CORS support for cross-origin requests
+
 ## 🏆 Vibe Coding Challenge Compliance
 
 This project meets all Vibe Coding Challenge requirements:
@@ -149,6 +192,7 @@ This project meets all Vibe Coding Challenge requirements:
 ✅ **3+ MCP Tools**: Content summarization, trend analysis, email delivery  
 ✅ **URL Access**: Deployed and accessible via URL  
 ✅ **Productivity Focus**: Helps users stay informed and productive  
+✅ **Security**: Enterprise-level security with Cloudflare Secrets  
 
 ## 📁 Project Structure
 
@@ -158,10 +202,11 @@ PodcastAddict/
 │   ├── index.ts          # Main application (Hono + frontend)
 │   └── db/
 │       └── schema.ts     # Database schema
-├── email-mcp-server/     # Email MCP server
+├── email-mcp-server/     # Local email MCP server
 │   ├── server.js         # MCP server implementation
 │   ├── http-server.js    # HTTP server for email tools
 │   └── package.json
+├── email-worker.js       # Cloudflare Worker email server
 ├── drizzle/              # Database migrations
 ├── .dev.vars             # Local environment variables
 ├── wrangler.jsonc        # Cloudflare Workers config
@@ -180,10 +225,26 @@ npm run db:migrate        # Apply migrations
 npm run dev               # Start development server
 npm run deploy            # Deploy to Cloudflare Workers
 
-# Email MCP Server
+# Email MCP Server (Local)
 cd email-mcp-server
-npm run http              # Start email server
+npm run http              # Start local email server
+
+# Email Worker (Production)
+npx wrangler deploy email-worker.js --name aiaddict-email
 ```
+
+## 🔐 Security Features
+
+### **API Key Management**
+- YouTube API key stored as Cloudflare Secret
+- No hardcoded credentials in code
+- Secure environment variable handling
+
+### **Production Security**
+- HTTPS-only communication
+- CORS protection
+- Input validation and sanitization
+- Error handling without sensitive data exposure
 
 ## 🌟 Key Benefits
 
@@ -211,6 +272,7 @@ This project was built for the Vibe Coding Challenge. Feel free to fork and enha
 - Custom email templates
 - Mobile app integration
 - Social media sharing
+- Real email delivery integration
 
 ## 📄 License
 
@@ -219,5 +281,7 @@ MIT License - feel free to use this project for learning and development.
 ---
 
 **Built with ❤️ for the Vibe Coding Challenge using Fiberplane Codegen, Cloudflare Workers, and Model Context Protocol**
+
+**🌐 Live Demo**: https://aiaddict.aiaddict.workers.dev
 
 
